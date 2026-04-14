@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>RC Cloud Farm</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--g:#00ff88;--y:#ffcc00;--r:#ff4444;--bg:#080809;--card:#0f1011;--t:#ccc;--d:#444}
+  body{background:var(--bg);color:var(--t);font-family:'Share Tech Mono',monospace;min-height:100vh;padding:16px 14px 40px;max-width:430px;margin:0 auto}
+
+  .hd{display:flex;align-items:center;gap:10px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid #1a1a1a}
+  .hd-dot{width:10px;height:10px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g);flex-shrink:0;transition:all .4s}
+  .hd-dot.off{background:var(--d);box-shadow:none}.hd-dot.done{background:var(--r);box-shadow:0 0 10px var(--r)}
+  .hd-title{font-size:12px;letter-spacing:.12em;flex:1}
+  .hd-badge{font-size:9px;letter-spacing:.14em;padding:4px 9px;border-radius:7px;background:#0a2a18;color:var(--g);transition:all .3s}
+  .hd-badge.off{background:#1a1a1a;color:var(--d)}.hd-badge.done{background:#2a0000;color:var(--r)}.hd-badge.warn{background:#2a1a00;color:var(--y)}
+
+  .card{background:var(--card);border:1px solid #1a1a1a;border-radius:16px;padding:14px;margin-bottom:10px}
+  .card-lbl{font-size:9px;letter-spacing:.1em;color:var(--d);margin-bottom:10px;text-transform:uppercase}
+
+  /* Login card */
+  .login-status{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .ls-dot{width:8px;height:8px;border-radius:50%;background:var(--d);flex-shrink:0;transition:all .3s}
+  .ls-dot.ok{background:var(--g);box-shadow:0 0 6px var(--g)}
+  .ls-dot.busy{background:var(--y);box-shadow:0 0 6px var(--y);animation:pulse 1s infinite}
+  .ls-dot.fail{background:var(--r);box-shadow:0 0 6px var(--r)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .ls-text{font-size:11px;color:var(--d);letter-spacing:.04em;flex:1}
+  .ls-text.ok{color:var(--g)}.ls-text.busy{color:var(--y)}.ls-text.fail{color:var(--r)}
+
+  .inp-lbl{font-size:9px;color:var(--d);letter-spacing:.07em;margin-top:8px;margin-bottom:3px}
+  .inp{width:100%;padding:10px 12px;background:#0a0a0a;border:1px solid #1e1e1e;border-radius:10px;color:var(--t);font-family:'Share Tech Mono',monospace;font-size:12px;outline:none}
+  .inp:focus{border-color:#00ff8833}
+  .login-btn{width:100%;padding:12px;background:linear-gradient(135deg,#092018,#0d2e1a);border:1px solid #00ff8833;border-radius:11px;color:var(--g);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:.1em;cursor:pointer;margin-top:10px;transition:all .2s}
+  .login-btn:active{background:#0d2e1a}
+  .login-btn:disabled{opacity:.5;cursor:not-allowed}
+  .login-hint{font-size:9px;color:#2a2a2a;margin-top:6px;line-height:1.6;letter-spacing:.03em}
+
+  /* Progress */
+  .prog-bar{height:7px;background:#141414;border-radius:4px;overflow:hidden;margin-bottom:10px}
+  .prog-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--g),#00ccff);transition:width .6s}
+  .prog-fill.warn{background:linear-gradient(90deg,var(--y),#ff8800)}.prog-fill.done{background:linear-gradient(90deg,var(--r),#cc0000)}
+  .time-row{display:flex;gap:7px}
+  .time-box{flex:1;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:10px;padding:9px 6px;text-align:center}
+  .time-lbl{font-size:8px;color:#333;letter-spacing:.08em;margin-bottom:3px}
+  .time-val{font-size:14px}.time-val.g{color:var(--g)}.time-val.r{color:var(--r)}.time-val.y{color:var(--y)}
+  .stats-row{display:flex;gap:7px;margin-top:8px}
+  .stat-box{flex:1;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:10px;padding:8px 5px;text-align:center}
+  .stat-lbl{font-size:7px;color:#2a2a2a;letter-spacing:.06em;margin-bottom:3px}
+  .stat-val{font-size:11px;color:var(--y)}
+
+  /* Toggle */
+  .toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .toggle-info{flex:1}.toggle-title{font-size:13px;margin-bottom:3px}.toggle-sub{font-size:10px;color:var(--d)}
+  .sw{position:relative;width:56px;height:30px;cursor:pointer;flex-shrink:0}
+  .sw input{opacity:0;width:0;height:0}
+  .sl{position:absolute;inset:0;background:#141414;border:1.5px solid #222;border-radius:15px;transition:background .25s}
+  .sl::before{content:'';position:absolute;width:21px;height:21px;left:4px;top:4px;background:#333;border-radius:50%;transition:transform .25s cubic-bezier(.34,1.56,.64,1),background .25s}
+  .sw input:checked+.sl{background:#092018;border-color:#00ff8844}
+  .sw input:checked+.sl::before{transform:translateX(26px);background:var(--g)}
+
+  /* Controls */
+  .ctrl-row{display:flex;align-items:center;justify-content:space-between;margin-top:10px}
+  .ctrl-lbl{font-size:10px;color:var(--d)}.ctrl-lbl b{color:var(--t)}
+  .ctrl{display:flex;align-items:center;gap:8px}
+  .btn{width:34px;height:34px;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:9px;color:var(--d);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;user-select:none;-webkit-tap-highlight-color:transparent;font-family:monospace}
+  .btn:active{background:#1a1a1a;color:#fff}
+  .ctrl-val{font-size:18px;font-weight:bold;color:#fff;min-width:32px;text-align:center}
+
+  /* Log */
+  .sec-toggle{font-size:10px;color:var(--d);cursor:pointer;letter-spacing:.07em;display:flex;align-items:center;gap:6px;margin-bottom:6px}
+  .sec-toggle::before{content:'▶';font-size:8px;transition:transform .2s}
+  .sec-toggle.open::before{transform:rotate(90deg)}
+  .collapsible{display:none}.collapsible.open{display:block}
+  .log-box{max-height:200px;overflow-y:auto}
+  .log-item{font-size:10px;padding:4px 0;border-bottom:1px solid #0d0d0d;line-height:1.4}
+  .log-item.success{color:var(--g)}.log-item.warn{color:var(--y)}.log-item.error{color:var(--r)}.log-item.info{color:#7bb}
+
+  .reset-btn{width:100%;padding:11px;background:#0d0d0d;border:1px solid #1e1e1e;border-radius:11px;color:var(--d);font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:.1em;cursor:pointer;-webkit-tap-highlight-color:transparent}
+  .reset-btn:active{border-color:var(--r);color:var(--r)}
+
+  .status-bar{display:flex;align-items:center;gap:8px;font-size:9px;color:#2a2a2a;justify-content:center;margin-top:16px}
+  .ring{width:7px;height:7px;border-radius:50%;border:1.5px solid #2a2a2a;border-top-color:var(--g);animation:spin 1s linear infinite;display:none}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  body.loading .ring{display:block}
+</style>
+</head>
+<body>
+
+<div class="hd">
+  <div class="hd-dot" id="hd"></div>
+  <div class="hd-title">RC CLOUD FARM</div>
+  <div class="hd-badge" id="hb">LOADING</div>
+</div>
+
+<!-- Auto Login Card -->
+<div class="card">
+  <div class="card-lbl">Account Login</div>
+  <div class="login-status">
+    <div class="ls-dot" id="ls-dot"></div>
+    <div class="ls-text" id="ls-text">Not logged in</div>
+  </div>
+  <div class="inp-lbl">ROLLERCOIN EMAIL</div>
+  <input class="inp" id="email" type="email" placeholder="your@email.com" autocomplete="email">
+  <div class="inp-lbl">PASSWORD</div>
+  <input class="inp" id="password" type="password" placeholder="your password" autocomplete="current-password">
+  <button class="login-btn" id="login-btn">🔑 LOGIN & GET TOKEN AUTO</button>
+  <div class="login-hint">
+    Your credentials are saved only on YOUR cloud server — not shared anywhere.<br>
+    The server logs in once, saves the token, and auto-refreshes it when it expires.
+  </div>
+</div>
+
+<!-- Progress -->
+<div class="card">
+  <div class="card-lbl">Today's Usage</div>
+  <div class="prog-bar"><div class="prog-fill" id="fill" style="width:0%"></div></div>
+  <div class="time-row">
+    <div class="time-box"><div class="time-lbl">USED</div><div class="time-val g" id="used">—</div></div>
+    <div class="time-box"><div class="time-lbl">LEFT</div><div class="time-val" id="rem">—</div></div>
+    <div class="time-box"><div class="time-lbl">LIMIT</div><div class="time-val y" id="lim">—</div></div>
+  </div>
+  <div class="stats-row">
+    <div class="stat-box"><div class="stat-lbl">GAMES</div><div class="stat-val" id="games">0</div></div>
+    <div class="stat-box"><div class="stat-lbl">POWER</div><div class="stat-val" id="power">0</div></div>
+    <div class="stat-box"><div class="stat-lbl">LAST GAME</div><div class="stat-val" id="last" style="font-size:9px">—</div></div>
+  </div>
+</div>
+
+<!-- Switch -->
+<div class="card">
+  <div class="toggle-row">
+    <div class="toggle-info">
+      <div class="toggle-title">Script Power</div>
+      <div class="toggle-sub" id="tog-sub">Loading...</div>
+    </div>
+    <label class="sw"><input type="checkbox" id="tog"><div class="sl"></div></label>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="card">
+  <div class="card-lbl">Settings</div>
+  <div class="ctrl-row">
+    <div class="ctrl-lbl">Daily limit <b id="lim-sub"></b></div>
+    <div class="ctrl">
+      <div class="btn" id="dn">−</div>
+      <div class="ctrl-val" id="hv">4</div>
+      <div class="btn" id="up">+</div>
+    </div>
+  </div>
+  <div class="ctrl-row">
+    <div class="ctrl-lbl">Level limit <b id="lv-sub"></b></div>
+    <div class="ctrl">
+      <div class="btn" id="lv-dn">−</div>
+      <div class="ctrl-val" id="lv">5</div>
+      <div class="btn" id="lv-up">+</div>
+    </div>
+  </div>
+</div>
+
+<!-- Log -->
+<div class="card">
+  <div class="sec-toggle open" id="log-t">LIVE LOG</div>
+  <div class="collapsible open" id="log-b">
+    <div class="log-box" id="log-box"></div>
+  </div>
+</div>
+
+<button class="reset-btn" id="res">↺ &nbsp;RESET TODAY'S COUNTER</button>
+
+<div class="status-bar">
+  <div class="ring"></div>
+  <span id="last-upd">Connecting...</span>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let d = {}, hours = 4, level = 5, busy = false;
+
+async function fetchStatus() {
+  try {
+    document.body.classList.add('loading');
+    const r = await fetch('/api/status');
+    d = await r.json();
+    hours = d.maxHours || 4;
+    level = d.levelLimit || 5;
+    renderUI();
+    $('last-upd').textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch { $('last-upd').textContent = '⚠️ Server unreachable'; }
+  finally { document.body.classList.remove('loading'); }
+}
+
+function renderUI() {
+  const { running, isOn, usedFmt, remFmt, maxHours, levelLimit, pct, limitHit,
+          hasToken, hasLogin, email, tokenStatus, gameStats, logs } = d;
+  const warn = pct >= 75;
+
+  // Header
+  $('hd').className  = 'hd-dot'+(limitHit?' done':!isOn?' off':'');
+  $('hb').className  = 'hd-badge'+(limitHit?' done':!isOn?' off':warn?' warn':'');
+  $('hb').textContent= limitHit?'DONE':!isOn?'OFF':running?'RUNNING':'STANDBY';
+
+  // Login status
+  const lsDot  = $('ls-dot');
+  const lsText = $('ls-text');
+  if (tokenStatus === 'ok' || hasToken) {
+    lsDot.className  = 'ls-dot ok';
+    lsText.className = 'ls-text ok';
+    lsText.textContent = email ? `✅ Logged in as ${email}` : '✅ Token active';
+  } else if (tokenStatus === 'logging_in') {
+    lsDot.className  = 'ls-dot busy';
+    lsText.className = 'ls-text busy';
+    lsText.textContent = '⏳ Logging in...';
+  } else if (tokenStatus === 'failed') {
+    lsDot.className  = 'ls-dot fail';
+    lsText.className = 'ls-text fail';
+    lsText.textContent = '❌ Login failed — check credentials';
+  } else {
+    lsDot.className  = 'ls-dot';
+    lsText.className = 'ls-text';
+    lsText.textContent = 'Not logged in — enter email & password';
+  }
+
+  // Progress
+  $('fill').style.width = pct+'%';
+  $('fill').className   = 'prog-fill'+(limitHit?' done':warn?' warn':'');
+  $('used').textContent = usedFmt||'0h 00m';
+  $('rem').textContent  = remFmt||'0h 00m';
+  $('rem').className    = 'time-val'+(limitHit?' r':'');
+  $('lim').textContent  = maxHours+'h';
+
+  $('games').textContent = gameStats?.played  || 0;
+  $('power').textContent = (gameStats?.totalPower||0).toLocaleString();
+  $('last').textContent  = gameStats?.lastGame || '—';
+
+  // Toggle
+  $('tog').checked = isOn;
+  $('tog').disabled = !hasToken && !hasLogin;
+  $('tog-sub').textContent = limitHit ? '⏹ Limit hit — resets at midnight'
+    : !hasToken && !hasLogin ? '⚠️ Login first to start'
+    : isOn && running ? '▶ Farming on cloud...'
+    : isOn ? '⏳ Starting...' : '■ Off';
+
+  $('hv').textContent  = maxHours;
+  $('lv').textContent  = levelLimit;
+  $('lim-sub').textContent = maxHours+'h/day';
+  $('lv-sub').textContent  = '≤ lvl '+levelLimit;
+
+  // Logs
+  if (logs?.length) {
+    $('log-box').innerHTML = logs.slice(0,30).map(l =>
+      `<div class="log-item ${l.level}">[${l.t}] ${esc(l.msg)}</div>`
+    ).join('');
+  }
+}
+
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function api(url, body) {
+  if (busy) return;
+  busy = true;
+  try {
+    const r = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    const data = await r.json();
+    await fetchStatus();
+    return data;
+  } catch { $('last-upd').textContent = 'Connection error'; }
+  finally { busy = false; }
+}
+
+// Login button
+$('login-btn').addEventListener('click', async () => {
+  const email    = $('email').value.trim();
+  const password = $('password').value.trim();
+  if (!email || !password) { alert('Enter your email and password.'); return; }
+
+  $('login-btn').disabled = true;
+  $('login-btn').textContent = '⏳ Logging in...';
+  $('ls-dot').className  = 'ls-dot busy';
+  $('ls-text').className = 'ls-text busy';
+  $('ls-text').textContent = 'Logging in...';
+
+  const result = await api('/api/login', { email, password });
+
+  $('login-btn').disabled = false;
+  $('login-btn').textContent = '🔑 LOGIN & GET TOKEN AUTO';
+
+  if (result?.ok) {
+    $('password').value = ''; // clear password field for security
+    alert('✅ Login successful! Token saved. You can now turn the script ON.');
+  } else {
+    alert('❌ Login failed: ' + (result?.message || 'Check email/password'));
+  }
+});
+
+$('tog').addEventListener('change', () => api('/api/toggle', { on: $('tog').checked }));
+
+$('up').addEventListener('click',    () => { if(hours<24){hours++;$('hv').textContent=hours;api('/api/config',{maxHours:hours});} });
+$('dn').addEventListener('click',    () => { if(hours>1){hours--;$('hv').textContent=hours;api('/api/config',{maxHours:hours});} });
+$('lv-up').addEventListener('click', () => { if(level<10){level++;$('lv').textContent=level;api('/api/config',{levelLimit:level});} });
+$('lv-dn').addEventListener('click', () => { if(level>1){level--;$('lv').textContent=level;api('/api/config',{levelLimit:level});} });
+
+$('res').addEventListener('click', () => { if(confirm('Reset today\'s counter?')) api('/api/reset',{}); });
+
+$('log-t').addEventListener('click', () => { $('log-t').classList.toggle('open'); $('log-b').classList.toggle('open'); });
+
+fetchStatus();
+setInterval(fetchStatus, 20000);
+</script>
+</body>
+</html>
