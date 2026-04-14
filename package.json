@@ -1,0 +1,15 @@
+{
+  "name": "rollercoin-cloud",
+  "version": "3.0.0",
+  "description": "Rollercoin auto-farmer running 24/7 on cloud. No browser needed.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2",
+    "crypto-js": "^4.2.0",
+    "node-fetch": "^2.7.0"
+  }
+}
